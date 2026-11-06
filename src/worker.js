@@ -1,7 +1,7 @@
 import {RULES,tally,validateHits,normalizeNickname} from '../public/game.js';
 import {isMobileRequest} from '../public/device.js';
 export const SEASON='ant-random-v1';
-const VERSION='0.5.0',TTL=600000,MAX_BODY=16000,MAX_INPUT_AGE=6000;
+const VERSION='0.6.0',TTL=600000,MAX_BODY=16000,MAX_INPUT_AGE=6000;
 function json(data,status=200,extra={}){return Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...extra}});}
 function fail(error,status=400,code='invalid_request'){return json({error,code,serviceVersion:VERSION},status);}
 function bindingFailure(env){

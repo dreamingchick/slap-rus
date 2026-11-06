@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "개미 등짝 스매싱",
+  "short_name": "등짝 스매싱",
+  "description": "타이밍에 맞춰 개미의 등을 두드리고 공용 랭킹에 도전하는 30초 게임",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f7f2",
+  "theme_color": "#284b36",
+  "prefer_related_applications": false,
+  "icons": [
+    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"/icons/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}
