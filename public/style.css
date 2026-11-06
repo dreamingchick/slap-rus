@@ -4,3 +4,5 @@
 button:disabled{opacity:.5;cursor:wait}.connection-note{font-size:10px;line-height:1.8}.rank-refresh-note{font-size:9px;color:#8b977e}input:focus-visible{outline:3px solid #ee8d3d;outline-offset:2px}.error{max-width:min(90%,600px)}.result{max-height:95dvh;overflow:auto}
 
 .mobile-gate{min-height:100dvh;display:grid;place-items:center;padding:30px;background:#f6f7f2}.mobile-gate-card{max-width:480px;text-align:center;background:#fff;border:1px solid #dce4d1;border-radius:24px;padding:40px 32px;box-shadow:0 20px 60px #23352d0a}.mobile-gate-icon{font-size:60px;margin:22px 0}.mobile-gate-card h1{font-size:30px;line-height:1.4}.mobile-gate-card p{color:#64725a;line-height:1.9}.mobile-gate-card small{color:#859078;font-size:11px;line-height:1.8}.mobile-address{word-break:break-all;background:#edf2e4;border-radius:10px;padding:12px;font-size:12px}.hit{touch-action:none;-webkit-touch-callout:none}#action{-webkit-user-select:none;user-select:none}
+
+.difficulty{font-size:10px;color:#698252;margin:0 0 12px;min-height:18px;font-variant-numeric:tabular-nums}
