@@ -4,8 +4,41 @@
   "main": "src/worker.js",
   "compatibility_date": "2026-11-06",
   "workers_dev": true,
-  "assets": {"directory": "public", "binding": "ASSETS", "run_worker_first": ["/api/*"]},
-  "d1_databases": [{"binding": "DB", "database_name": "slap-rus-ranking", "migrations_dir": "migrations"}],
-  "ratelimits": [{"name": "RATE_LIMITER", "namespace_id": "837421", "simple": {"limit": 60, "period": 60}}],
-  "triggers": {"crons": ["0 * * * *"]}
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "slap-rus-ranking",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "837421",
+      "simple": {
+        "limit": 60,
+        "period": 60
+      }
+    },
+    {
+      "name": "START_LIMITER",
+      "namespace_id": "837422",
+      "simple": {
+        "limit": 6,
+        "period": 60
+      }
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 * * * *"
+    ]
+  }
 }

@@ -1,4 +1,4 @@
-export const RULES = Object.freeze({version:1,duration:30000,interval:850,firstTarget:1500,countdown:3000,minInputGap:100});
+export const RULES = Object.freeze({version:2,duration:30000,interval:850,firstTarget:1500,countdown:3000,minInputGap:100});
 export function judge(offset){const d=Math.abs(offset);return d<=65?{label:'PERFECT',base:100}:d<=140?{label:'GREAT',base:60}:d<=230?{label:'GOOD',base:30}:{label:'MISS',base:0};}
 export function beatAt(time){return Math.round((time-RULES.firstTarget)/RULES.interval);}
 export function targetAt(beat){return RULES.firstTarget+beat*RULES.interval;}
