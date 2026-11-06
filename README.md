@@ -1,17 +1,74 @@
-# slap-rus · 등짝 스매싱
+# SLAP RUSH · 등짝 스매싱 v0.2
 
-30초 동안 타이밍에 맞춰 점수를 쌓는 웹 아케이드 게임입니다.
+30초 타이밍 게임과 공용 랭킹 API를 하나의 Cloudflare Worker로 제공합니다.
+GitHub 저장소 이름 및 Worker 이름은 `slap-rus`입니다.
 
-## 현재 구현
-- PC 스페이스바 / 모바일 터치 조작
-- PERFECT·GREAT·GOOD 판정과 최대 2배 콤보
-- 효과음, 닉네임 TOP 50 기록
-- index.html을 내려받아 Chrome 또는 Edge에서 실행
+## Cloudflare에서 입력할 값
 
-현재 랭킹은 브라우저 로컬 저장이며 다른 플레이어·기기와 공유되지 않습니다.
-공용 랭킹 서버와 웹 호스팅은 아직 연결하지 않았습니다.
+Workers & Pages → slap-rus → Settings → Builds에서 다음 값을 사용합니다.
 
-## 다음 단계
-Cloudflare Workers + D1 공용 랭킹 연결, PC·모바일 검수 및 웹 배포.
+| 항목 | 값 |
+|---|---|
+| 저장소 | dreamingchick/slap-rus |
+| 프로덕션 브랜치 | main |
+| 루트 디렉터리 | 저장소 루트(기본값) |
+| 빌드 명령 | npm run build |
+| 배포 명령 | npm run deploy |
+| Worker 이름 | slap-rus |
+| Node 버전 | 24 권장, 최소 22.13 |
 
-검증 내역은 PROJECT_STATUS.md를 참조하세요.
+GitHub 연결에 사용한 Workers Builds API 토큰은 Workers 배포 권한 외에 **Account → D1 → Edit** 권한이 필요합니다.
+기본 자동 생성 토큰에는 D1 권한이 없을 수 있습니다. Cloudflare My Profile → API Tokens에서 해당 빌드 토큰을 편집하여 D1 Edit를 추가합니다. 토큰 값은 GitHub 파일이나 채팅에 붙여 넣지 않습니다.
+
+`npm run deploy`는 기존 `slap-rus-ranking` DB를 재사용합니다. 처음인 경우에만 생성하며 실제 UUID를 조회해 임시 배포 설정에 반영합니다. 이후 D1 마이그레이션을 적용하고 Worker와 public 자산을 배포합니다.
+DB 데이터나 토큰은 저장소에 커밋하지 않습니다. 같은 DB 이름을 사용하므로 재배포마다 랭킹 DB가 생기지 않습니다.
+직접 `npx wrangler deploy`만 실행하면 마이그레이션 단계를 건너뛰므로 **배포 명령을 반드시 npm run deploy로 지정**하세요.
+브랜치 프리뷰에 프로덕션 배포 명령을 지정하지 마세요. 현재 배포 스크립트는 main 프로덕션용입니다.
+
+## 게임
+
+- 3초 준비 후 30초 동안 PC 스페이스바 / 모바일 스매싱 버튼으로 플레이합니다.
+- PERFECT ±65ms: 100점 / GREAT ±140ms: 60점 / GOOD ±230ms: 30점
+- 5콤보를 채운 다음 타격부터 배수 +0.25, 최대 ×2
+- 빗나감, 같은 박자 중복, 박자 누락은 콤보를 끊습니다.
+- 닉네임 2~12자. 닉네임 중복 가능, 별도 계정 인증 없음.
+- 공용 TOP 50: 점수 내림차순, 동점은 등록 시간 오름차순.
+- 랭킹에 닉네임과 점수가 공개됩니다. 기존 단독 실행판 기록은 업로드하지 않습니다.
+
+## 서버
+
+| 경로 | 역할 |
+|---|---|
+| GET /api/health | DB·설정 준비 확인 |
+| POST /api/rounds | 한 판의 ID·랜덤 토큰 발급 |
+| POST /api/scores | 입력 기록 검사 및 서버 점수 계산·등록 |
+| GET /api/rankings | 공용 TOP 50 조회 |
+
+한 판의 결과는 DB의 조건부 UPDATE로 단 한 번 확정됩니다. 동일 기록 재전송은 안전하게 기존 결과를 반환합니다. 다른 내용으로 덮어쓰기는 거부합니다. 시작부터 33초 이전 또는 10분 이후 신규 점수 등록을 거부합니다. 클라이언트가 보낸 점수 숫자는 사용하지 않습니다. 닉네임을 SQL에 직접 이어 붙이지 않으며 화면에는 textContent로 출력합니다.
+1분에 IP별 API 읽기/쓰기 각각 60회 제한을 적용합니다. 이 제한은 Cloudflare 위치별 근사 제한이며 전 세계를 합산한 정확한 제한은 아닙니다. IP는 랭킹 DB에 저장하지 않습니다. 10분 지난 미등록 판은 시간당 정리하며 등록 기록은 유지합니다.
+
+클라이언트가 타격 시점을 제출하므로 의도적으로 완벽한 타격 시간을 합성하는 공격까지 막지는 못합니다. 본 버전은 캐주얼 게임용 기본 검증이며 강력한 부정행위 방지가 필요한 경쟁·보상 서비스용으로 검증되지 않았습니다.
+
+## 로컬 개발
+
+Node 22.13 이상에서:
+
+```sh
+npm install
+npm run db:local
+npm run dev
+```
+
+검증은 `npm test`, 자산 검사는 `npm run build`입니다. 의존성 설치 없이 로직/API 검증만 하려면 `node tests/game.test.js`와 `node scripts/check-assets.mjs`를 실행할 수 있습니다.
+실제 Cloudflare 인증과 DB 권한을 가진 환경에서만 `npm run deploy`를 실행하세요.
+
+단독 실행판은 `examples/offline.html`에 보존했습니다. 이 파일의 랭킹은 현재 브라우저에만 저장되며 공용 랭킹과 별개입니다.
+
+## 공개 후 확인
+
+1. 배포 URL의 /api/health에서 ok=true인지 확인합니다.
+2. PC에서 한 판을 완료하고 닉네임으로 등록합니다.
+3. 휴대폰에서 같은 URL을 열어 해당 기록이 보이는지 확인합니다.
+4. 새로고침 후에도 기록이 유지되는지 확인합니다.
+
+자세한 검증 범위는 PROJECT_STATUS.md를 참조하세요.

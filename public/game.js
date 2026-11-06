@@ -1,0 +1,7 @@
+export const RULES = Object.freeze({version:1,duration:30000,interval:850,firstTarget:1500,countdown:3000,minInputGap:100});
+export function judge(offset){const d=Math.abs(offset);return d<=65?{label:'PERFECT',base:100}:d<=140?{label:'GREAT',base:60}:d<=230?{label:'GOOD',base:30}:{label:'MISS',base:0};}
+export function beatAt(time){return Math.round((time-RULES.firstTarget)/RULES.interval);}
+export function targetAt(beat){return RULES.firstTarget+beat*RULES.interval;}
+export function tally(hits){let score=0,combo=0,maxCombo=0,previous=-1;const seen=new Set();const counts={PERFECT:0,GREAT:0,GOOD:0,MISS:0};for(const t of hits){const beat=beatAt(t);if(beat<0||targetAt(beat)>=RULES.duration||seen.has(beat)){combo=0;counts.MISS++;continue;}if(beat>previous+1)combo=0;previous=beat;seen.add(beat);const j=judge(t-targetAt(beat));counts[j.label]++;if(j.base){combo++;maxCombo=Math.max(combo,maxCombo);score+=Math.round(j.base*(1+Math.min(Math.floor((combo-1)/5),4)*.25));}else combo=0;}return {score,maxCombo,combo,counts};}
+export function validateHits(hits){return Array.isArray(hits)&&hits.length<=300&&hits.every((t,i)=>typeof t==='number'&&Number.isFinite(t)&&t>=0&&t<RULES.duration&&(i===0||t-hits[i-1]>=RULES.minInputGap));}
+export function normalizeNickname(value){if(typeof value!=='string')return null;const name=value.normalize('NFKC').trim();return /^[\p{L}\p{N}_ -]{2,12}$/u.test(name)?name:null;}
