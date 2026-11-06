@@ -1,7 +1,7 @@
 import {RULES,tally,validateHits,normalizeNickname} from '../public/game.js';
 import {isMobileRequest} from '../public/device.js';
-export const SEASON='mobile-v1';
-const VERSION='0.4.0',TTL=600000,MAX_BODY=16000,MAX_INPUT_AGE=6000;
+export const SEASON='ant-random-v1';
+const VERSION='0.5.0',TTL=600000,MAX_BODY=16000,MAX_INPUT_AGE=6000;
 function json(data,status=200,extra={}){return Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...extra}});}
 function fail(error,status=400,code='invalid_request'){return json({error,code,serviceVersion:VERSION},status);}
 function bindingFailure(env){
@@ -19,7 +19,7 @@ async function readBody(request){
 }
 function limited(){return json({error:'요청이 많습니다. 1분 후 다시 시도해 주세요.',code:'rate_limit'},429,{'Retry-After':'60'});}
 const prefixMatches=(short,long)=>short.every((t,i)=>t===long[i]);
-export function createWorker({now=()=>Date.now(),uuid=()=>crypto.randomUUID()}={}){return {
+export function createWorker({now=()=>Date.now(),uuid=()=>crypto.randomUUID(),randomSeed=()=>crypto.getRandomValues(new Uint32Array(1))[0]||1}={}){return {
  async fetch(request,env){
   const url=new URL(request.url),path=url.pathname;
   if(!path.startsWith('/api/'))return env.ASSETS.fetch(request);
@@ -43,7 +43,7 @@ export function createWorker({now=()=>Date.now(),uuid=()=>crypto.randomUUID()}={
    if(health){
     const table=await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='rounds'").first();
     if(!table)return fail('랭킹 데이터를 준비 중입니다.',503,'db_schema_missing');
-    await env.DB.prepare('SELECT id,season,input_hits,score,max_combo,submitted_at,payload_hash,token_hash,issued_at,rules_version,nickname FROM rounds LIMIT 1').first();
+    await env.DB.prepare('SELECT id,season,seed,input_hits,score,max_combo,submitted_at,payload_hash,token_hash,issued_at,rules_version,nickname FROM rounds LIMIT 1').first();
     return json({ok:true,ranking:'global',rulesVersion:RULES.version,serviceVersion:VERSION,season:SEASON,mobileOnly:true});
    }
    if(read){
@@ -53,9 +53,9 @@ export function createWorker({now=()=>Date.now(),uuid=()=>crypto.randomUUID()}={
    let body;try{body=await readBody(request);}catch(e){return fail(e.message==='size'?'요청 크기가 너무 큽니다.':'올바른 JSON 요청이 필요합니다.',e.message==='size'?413:400);}
    const current=now();
    if(path==='/api/rounds'){
-    const id=uuid(),token=uuid()+uuid();
-    await env.DB.prepare('INSERT INTO rounds (id,token_hash,issued_at,rules_version,season) VALUES (?,?,?,?,?)').bind(id,await digest(token),current,RULES.version,SEASON).run();
-    return json({roundId:id,token,rules:RULES,season:SEASON,expiresIn:TTL},201);
+    const id=uuid(),token=uuid()+uuid(),seed=randomSeed();
+    await env.DB.prepare('INSERT INTO rounds (id,token_hash,issued_at,rules_version,season,seed) VALUES (?,?,?,?,?,?)').bind(id,await digest(token),current,RULES.version,SEASON,seed).run();
+    return json({roundId:id,token,seed,rules:RULES,season:SEASON,expiresIn:TTL},201);
    }
    if(typeof body.roundId!=='string'||body.roundId.length>64||typeof body.token!=='string'||body.token.length>128)return fail('플레이 인증 정보가 없습니다.',401,'token');
    const round=await env.DB.prepare('SELECT * FROM rounds WHERE id=?').bind(body.roundId).first();
@@ -78,11 +78,11 @@ export function createWorker({now=()=>Date.now(),uuid=()=>crypto.randomUUID()}={
    const nickname=normalizeNickname(body.nickname);
    if(!nickname)return fail('닉네임은 한글·영문·숫자 2~12자로 입력해 주세요.');
    if(!validateHits(body.hits)||JSON.stringify(body.hits)!==round.input_hits)return fail('서버에 전달된 입력과 일치하지 않습니다. 기록 전송을 다시 시도해 주세요.',400,'inputs_unverified');
-   const payloadHash=await digest(JSON.stringify({nickname,hits:stored}));
+   const payloadHash=await digest(JSON.stringify({nickname,hits:stored,seed:round.seed}));
    if(round.score!==null){if(round.payload_hash===payloadHash)return json({score:round.score,maxCombo:round.max_combo,alreadySaved:true});return fail('이미 등록한 판입니다.',409,'already_submitted');}
    if(current-round.issued_at<RULES.duration+RULES.countdown)return fail('플레이가 끝난 뒤 등록해 주세요.',400,'too_early');
    if(current-round.issued_at>TTL)return fail('등록 가능 시간이 지났습니다. 다시 도전해 주세요.',410,'expired');
-   const result=tally(stored);
+   const result=tally(stored,round.seed);
    // Comparing the immutable stream in the same statement prevents a late upload/result race.
    const update=await env.DB.prepare('UPDATE rounds SET nickname=?,score=?,max_combo=?,submitted_at=?,payload_hash=? WHERE id=? AND score IS NULL AND input_hits=?').bind(nickname,result.score,result.maxCombo,current,payloadHash,body.roundId,round.input_hits).run();
    if(!update.meta.changes){const saved=await env.DB.prepare('SELECT score,max_combo,payload_hash FROM rounds WHERE id=?').bind(body.roundId).first();if(saved?.payload_hash===payloadHash)return json({score:saved.score,maxCombo:saved.max_combo,alreadySaved:true});return fail('기록이 변경되었거나 이미 등록한 판입니다.',409,'already_submitted');}

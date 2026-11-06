@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createResultGuard} from '../public/result-guard.js';
+const touch={isTrusted:true,isPrimary:true,pointerType:'touch',pointerId:1};
+const click={isTrusted:true,detail:1};
+test('closing and registering stay locked for the initial 800ms',()=>{let time=1000;const guard=createResultGuard({now:()=>time});guard.open();assert(!guard.ready());guard.arm(touch);assert(!guard.acceptClick(click));time=1799;assert(!guard.ready());time=1800;assert(guard.ready());});
+test('a lingering game touch cannot close the result even after the delay',()=>{let time=0;const guard=createResultGuard({now:()=>time});guard.open();time=1000;assert(!guard.acceptClick(click));guard.arm(touch);assert(guard.acceptClick(click));});
+test('a press started during the lock never becomes a valid close',()=>{let time=0;const guard=createResultGuard({now:()=>time});guard.open();time=100;guard.arm(touch);time=1000;assert(!guard.acceptClick(click));});
+test('cancelled, synthetic and outdated close inputs are rejected',()=>{let time=0;const guard=createResultGuard({now:()=>time});guard.open();time=1000;guard.arm(touch);guard.cancel();assert(!guard.acceptClick(click));guard.arm({...touch,isTrusted:false});assert(!guard.acceptClick(click));guard.arm(touch);time=4001;assert(!guard.acceptClick(click));});
+test('a previous modal interaction cannot close the next modal',()=>{let time=0;const guard=createResultGuard({now:()=>time});guard.open();time=1000;guard.arm(touch);guard.open();time=2000;assert(!guard.acceptClick(click));guard.arm(touch);assert(guard.acceptClick(click));guard.dismiss();assert(!guard.ready());});
+test('intentional keyboard activation remains accessible after the delay',()=>{let time=0;const guard=createResultGuard({now:()=>time});guard.open();time=900;assert(guard.acceptClick({isTrusted:true,detail:0}));assert(!guard.acceptClick({isTrusted:false,detail:0}));});
