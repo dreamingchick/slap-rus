@@ -1,22 +1,22 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync,existsSync} from 'node:fs';import vm from 'node:vm';import {setupPwa} from '../public/pwa.js';
 const root=new URL('../public/',import.meta.url),read=name=>readFileSync(new URL(name,root),'utf8').replace(/^\uFEFF/,'');
 test('manifest has stable identity, standalone launch and valid icon sizes',()=>{const m=JSON.parse(read('manifest.webmanifest'));assert.equal(m.id,'/');assert.equal(m.scope,'/');assert.equal(m.display,'standalone');assert.equal(new URL(m.start_url,'https://game.example').pathname,'/');assert(m.name.includes('등짝'));for(const size of [192,512])assert(m.icons.some(i=>i.sizes===size+'x'+size&&i.purpose==='any'));assert(m.icons.some(i=>i.purpose==='maskable'));for(const icon of m.icons){const bytes=readFileSync(new URL(icon.src.slice(1),root));assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');const [width,height]=icon.sizes.split('x').map(Number);assert.equal(bytes.readUInt32BE(16),width);assert.equal(bytes.readUInt32BE(20),height);}const apple=readFileSync(new URL('icons/icon-180.png',root));assert.equal(apple.readUInt32BE(16),180);});
-test('game retains the worker and hands installation to the arcade',()=>{
+test('game retains the worker and returns to arcade home',()=>{
  const html=read('index.html');
  assert(!html.includes('rel="manifest"'));
  assert(html.includes('/pwa.js?v=arcade'));
  assert(html.includes('오락실 앱 설치'));
  for(const mobile of [true,false]){
-  const opened=[],registered=[];
-  const elements={'install-panel':{classList:{toggle(){}}},'install-button':{},'install-help':{}};
+  const opened=[],registered=[],navigated=[];
+  const elements={'install-panel':{classList:{toggle(){}},setAttribute(){},querySelector(){return null;}},'install-button':{},'install-help':{}};
   setupPwa({
-   window:{open:(...args)=>opened.push(args)},
+   window:{open:(...args)=>opened.push(args),location:{assign:url=>navigated.push(url)}},
    document:{getElementById:id=>elements[id],readyState:'complete'},
    navigator:{userAgent:mobile?'Android Mobile':'Windows NT',maxTouchPoints:mobile?5:0,
     serviceWorker:{register:async path=>registered.push(path)}},
   });
   elements['install-button'].onclick();
-  assert.deepEqual(opened,mobile?[['https://garu-arcade-hub.snugbrink3.chatgpt.site/#install-guide','_blank','noopener,noreferrer']]:[]);
+  assert.deepEqual(opened,[]);assert.deepEqual(navigated,['https://garu-arcade-hub.snugbrink3.chatgpt.site/']);
   assert.deepEqual(registered,mobile?['/sw.js']:[]);
  }
 });
