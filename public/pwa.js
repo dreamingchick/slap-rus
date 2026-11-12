@@ -1,11 +1,11 @@
 import {isMobileClient} from './device.js';
 
-function cameFromArcade() {
-  let entered = new URLSearchParams(location.search).get('from') === 'garu-arcade';
-  try { entered = entered || (document.referrer && new URL(document.referrer).origin === 'https://garu-arcade-hub.snugbrink3.chatgpt.site'); } catch {}
+function cameFromArcade(win, doc) {
+  let entered = new URLSearchParams(win.location?.search || '').get('from') === 'garu-arcade';
+  try { entered = entered || (doc.referrer && new URL(doc.referrer).origin === 'https://garu-arcade-hub.snugbrink3.chatgpt.site'); } catch {}
   try {
-    if (entered) sessionStorage.setItem('garu-arcade-entry', '1');
-    return Boolean(entered || sessionStorage.getItem('garu-arcade-entry') === '1');
+    if (entered) win.sessionStorage?.setItem('garu-arcade-entry', '1');
+    return Boolean(entered || win.sessionStorage?.getItem('garu-arcade-entry') === '1');
   } catch { return Boolean(entered); }
 }
 
@@ -15,7 +15,7 @@ export function setupPwa({window,document,navigator}){
  const help=document.getElementById('install-help');
  if(!panel||!button||!help)return;
  const mobile=isMobileClient(navigator);
- const fromArcade=cameFromArcade();
+ const fromArcade=cameFromArcade(window,document);
  panel.classList.toggle('hidden',!mobile&&!fromArcade);
  if(fromArcade){
   panel.setAttribute('aria-label','가루 오락실로 돌아가기');
