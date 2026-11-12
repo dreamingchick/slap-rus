@@ -15,7 +15,7 @@ export function setupPwa({window,document,navigator}){
  const help=document.getElementById('install-help');
  if(!panel||!button||!help)return;
  const mobile=isMobileClient(navigator);
- const fromArcade=cameFromArcade(window,document);
+ const fromArcade=true;
  panel.classList.toggle('hidden',!mobile&&!fromArcade);
  if(fromArcade){
   panel.setAttribute('aria-label','가루 오락실로 돌아가기');
