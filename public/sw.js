@@ -1,4 +1,4 @@
-const CACHE='garu-slap-rus-static-v0.6.0-arcade-home-1';
+const CACHE='garu-slap-rus-static-v0.6.0-arcade-home-1-sound-off';
 const PREFIX='garu-slap-rus-static-';
 const ASSETS=['/offline.html','/style.css?v=0.6.0','/app.js?v=0.5.0','/game.js?v=0.5.0','/device.js','/result-guard.js?v=0.5.0','/pwa.js?v=arcade-home-1','/manifest.webmanifest','/icons/icon-192.png','/icons/icon-512.png','/icons/icon-maskable-512.png','/icons/icon-180.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));});
